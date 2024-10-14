@@ -18,37 +18,138 @@ public class AuthController : ControllerBase
     {
         this._configuration = configuration;
     }
-
+    
+    // Login endpoint
     [HttpPost("login")]
     public IActionResult Login([FromBody] LoginModel model)
     {
-        try{
+        try
+        {
             int state = db.Login(model);
-            if(state==1){
+            if (state == 1)
+            {
                 var token = GenerateAccessToken(model.Username);
-                return Ok(new { AccessToken = new JwtSecurityTokenHandler().WriteToken(token)});
-            }else return Unauthorized(new { message = "Invalid credentials" });
-        }catch{return Unauthorized(new { message = "Invalid credentials" });}
+                return Ok(new { AccessToken = new JwtSecurityTokenHandler().WriteToken(token) });
+            }
+            else
+            {
+                return Unauthorized(new { message = "Invalid credentials" });
+            }
+        }
+        catch
+        {
+            return Unauthorized(new { message = "Invalid credentials" });
+        }
     }
 
+    // Signin endpoint
+    [HttpPost("signin")]
+    public IActionResult Signin([FromBody] LoginModel model)
+    {
+        try
+        {
+            int state = db.Signin(model);
+            if (state == 1)
+            {
+                var token = GenerateAccessToken(model.Username);
+                return Ok(new { AccessToken = new JwtSecurityTokenHandler().WriteToken(token) });
+            }
+            else if (state == 2)
+            {
+                return Conflict(new { message = "User already exists" });
+            }
+            else
+            {
+                return BadRequest(new { message = "User creation failed" });
+            }
+        }
+        catch
+        {
+            return BadRequest(new { message = "User creation failed" });
+        }
+    }
+
+    // Modify user password endpoint
+    [HttpPut("modify")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public IActionResult ModifyPassword([FromBody] LoginModel model)
+    {
+        var currentUser = HttpContext.User.Identity.Name;
+
+        if (string.IsNullOrEmpty(currentUser))
+        {
+            return Unauthorized(new { message = "Unauthorized access" });
+        }
+
+        try
+        {
+            int state = db.Modify(model);
+            if (state == 1)
+            {
+                return Ok(new { message = "Password updated successfully" });
+            }
+            else
+            {
+                return BadRequest(new { message = "Password update failed" });
+            }
+        }
+        catch
+        {
+            return BadRequest(new { message = "Password update failed" });
+        }
+    }
+
+    // Delete user endpoint
+    [HttpDelete("delete")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public IActionResult DeleteUser([FromBody] LoginModel model)
+    {
+        var currentUser = HttpContext.User.Identity.Name;
+
+        if (string.IsNullOrEmpty(currentUser))
+        {
+            return Unauthorized(new { message = "Unauthorized access" });
+        }
+
+        try
+        {
+            int state = db.Delete(model);
+            if (state == 1)
+            {
+                return Ok(new { message = "User deleted successfully" });
+            }
+            else
+            {
+                return BadRequest(new { message = "User deletion failed" });
+            }
+        }
+        catch
+        {
+            return BadRequest(new { message = "User deletion failed" });
+        }
+    }
+
+    // Generate JWT token
     private JwtSecurityToken GenerateAccessToken(string userName)
     {
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.Name, userName),
+            new Claim(ClaimTypes.Name, userName)
         };
 
         var token = new JwtSecurityToken(
             issuer: _configuration["JwtSettings:Issuer"],
             audience: _configuration["JwtSettings:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(60), // Token expiration time
-            signingCredentials: new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"])),
+            expires: DateTime.UtcNow.AddMinutes(60),
+            signingCredentials: new SigningCredentials(
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"])),
                 SecurityAlgorithms.HmacSha256)
         );
 
         return token;
     }
+
     [HttpGet("verify-token")]
     public IActionResult VerifyToken()
     {
@@ -81,17 +182,5 @@ public class AuthController : ControllerBase
         {
             return Unauthorized();
         }
-    }
-    [HttpPost("signin")]
-    public IActionResult Signin([FromBody] LoginModel model)
-    {
-        try{
-            int state = db.Signin(model);
-            if(state==1){
-                var token = GenerateAccessToken(model.Username);
-                return Ok(new { AccessToken = new JwtSecurityTokenHandler().WriteToken(token)});
-            }else if(state == 2){return Ok(2);}
-            else {return Unauthorized(new { message = "Invalid credentials" });}
-        }catch{return Unauthorized(new { message = "Invalid credentials" });}
     }
 }

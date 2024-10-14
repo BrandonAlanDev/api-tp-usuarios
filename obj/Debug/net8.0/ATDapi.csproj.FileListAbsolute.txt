@@ -78,3 +78,4 @@ D:\tp_brandon\tp220824api\obj\Debug\net8.0\refint\ATDapi.dll
 D:\tp_brandon\tp220824api\obj\Debug\net8.0\ATDapi.pdb
 D:\tp_brandon\tp220824api\obj\Debug\net8.0\ATDapi.genruntimeconfig.cache
 D:\tp_brandon\tp220824api\obj\Debug\net8.0\ref\ATDapi.dll
+D:\tp_brandon\tp220824api\obj\Debug\net8.0\ATDapi.sourcelink.json
